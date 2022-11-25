@@ -143,11 +143,11 @@ font = pygame.font.SysFont("Arial", 20)
 pfont = pygame.font.SysFont("Arial", 14)
 running = True
 
-pygame.mixer.init()
-pygame.mixer.music.load("mii.wav")
-pygame.mixer.music.set_volume(1)
+# pygame.mixer.init()
+# pygame.mixer.music.load("mii.wav")
+# pygame.mixer.music.set_volume(1)
 
-pygame.mixer.music.play()
+# pygame.mixer.music.play()
 
 while running:
     for event in pygame.event.get():
