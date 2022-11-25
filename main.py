@@ -4,20 +4,30 @@ from datetime import timedelta
 from ambiance import Atmosphere
 
 class Body:
-    def __init__(self, name, mass, radius, velocity, direction, x, y, Cd):
+    def __init__(self, name, mass, radius, velocity, direction, x, y, Cd, m_fuel, burn_rate, thrust, nozzle_r):
         self.name = name
+        self.m_fuel = m_fuel
         self.mass = mass
         self.radius = radius
+        self.direction = direction
         self.vx = velocity*math.cos(direction)
         self.vy = velocity*math.sin(direction)
         self.x = x
         self.y = y
         self.Cd = Cd
         self.A = math.pi*radius**2
+        self.burn_rate = burn_rate
+        self.thrust = thrust
+        self.Ae = math.pi*nozzle_r**2
 
     def update(self, F, dt):
-        ax = F[0]/self.mass
-        ay = F[1]/self.mass
+        if self.m_fuel > 0:
+            self.m_fuel -= self.burn_rate*dt
+        else:
+            self.m_fuel = 0
+
+        ax = F[0]/(self.mass + self.m_fuel)
+        ay = F[1]/(self.mass + self.m_fuel)
         self.vx += (ax*dt)
         self.vy += (ay*dt)
         self.x += (self.vx*dt)
@@ -35,8 +45,11 @@ bodies = {
     # 7: Body("Uranus", 8.6810*10**25, 25_362*10**3, 6.80*10**3, math.pi, 0, 3006.39*10**9),
     # 8: Body("Neptune", 1.02413*10**26, 24_622*10**3, 5.43*10**3, math.pi/2, 4.54*10**12, 0),
 
-    0: Body("Earth", 5.97217*10**24, 6371*10**3, 0, 0, 0, 0, 0.1),
-    1: Body("Orbiter", 5000, 2, 6667, math.pi, 0, 8000*10**3, 0.1),
+    0: Body("Earth", 5.97217*10**24, 6371*10**3, 0, 0, 0, 0, 0.1, 0, 0, 0, 0),
+    1: Body("Moon", 7.342*10**22, 1737.4*10**3, 1.022*10**3, -math.pi, 0, 384399*10**3, 0.1, 0, 0, 0, 0),
+    # 2: Body("Black-Brant", 243, 0.21, 0, (11*math.pi)/20, 0, 6371.1*10**3, 0.3, 1018, 10, 69.4*10**3, 0.17),
+    3: Body("b1", 3000, 3, 870, math.pi/2, 394399*10**3, 0, 0.1, 0, 0, 0, 0),
+    4: Body("b2", 3000, 3, 8040, 0, 0, -12000*10**3, 0.1, 0, 0, 0, 0),
 }
 
 
@@ -60,7 +73,7 @@ def Fdrag(earth, obj):
 
     v = (vx**2 + vy**2)**0.5
 
-    if r < 81020:
+    if r < 81020 and r > -5000:
         Fd = 0.5*Atmosphere(r).density[0]*obj.Cd*obj.A*(v**2)
     else:
         Fd = 0
@@ -73,14 +86,46 @@ def Fdrag(earth, obj):
     return Fd
 
 
+def Fthrust(earth, obj):
+    H = 7640
+    r = (((earth.x-obj.x)**2 + (earth.y-obj.y)**2)**0.5) - earth.radius
+
+    vx = obj.vx - earth.vx
+    vy = obj.vy - earth.vy
+
+    v = (vx**2 + vy**2)**0.5
+
+    if r < 81020 and r > -5000:
+        Pa = Atmosphere(r).pressure[0]
+    else:
+        Pa = 0
+    
+    if obj.m_fuel > 0:
+        Ft = obj.thrust+obj.Ae*Pa*(1-math.exp(-r/H))
+    else:
+        Ft = 0
+
+
+    if abs(v) < 0.01:
+        Ftx = (vx/v)*Ft
+        Fty = (vy/v)*Ft
+    else:
+        Ftx = Ft*math.cos(obj.direction)
+        Fty = Ft*math.sin(obj.direction)
+
+    Ft = [Ftx, Fty]
+
+    return Ft
+
+
 t = 0
-dt = 0.1
+dt = 100
 
-WIDTH = 800
-HEIGHT = 800
+WIDTH = 1000
+HEIGHT = 1000
 
-x_max = 8000*10**3
-y_max = 8000*10**3
+x_max = 450_000*10**3
+y_max = 450_000*10**3
 
 xzero = WIDTH/2
 
@@ -120,11 +165,16 @@ while running:
     for body in bodies.values():
         Fg = [0, 0]
         Fd = [0, 0]
+        Ft = [0, 0]
 
         if body.name != "Earth":
             Fds = Fdrag(bodies[0], body)
             Fd[0] += Fds[0]
             Fd[1] += Fds[1]
+
+            Fts = Fthrust(bodies[0], body)
+            Ft[0] += Fts[0]
+            Ft[1] += Fts[1]
 
         for i in bodies.values():
             if body != i:
@@ -133,8 +183,6 @@ while running:
                 Fg[1] += Fgs[1]
 
                 alt = ((body.x-i.x)**2 + (body.y-i.y)**2)**0.5 - (body.radius + i.radius)
-
-                print(alt/1000)
 
                 # remove body in collision
                 if alt <= 0:
@@ -145,8 +193,8 @@ while running:
 
         # Calculate sum of forces on body
         F = [0, 0]
-        F[0] = Fg[0] + Fd[0]
-        F[1] = Fg[1] + Fd[1]
+        F[0] = Fg[0] + Fd[0] + Ft[0]
+        F[1] = Fg[1] + Fd[1] + Ft[1]
 
         # Update forces on body
         body.update(F, dt)
