@@ -48,8 +48,8 @@ bodies = {
     0: Body("Earth", 5.97217*10**24, 6371*10**3, 0, 0, 0, 0, 0.1, 0, 0, 0, 0),
     1: Body("Moon", 7.342*10**22, 1737.4*10**3, 1.022*10**3, -math.pi, 0, 384399*10**3, 0.1, 0, 0, 0, 0),
     # 2: Body("Black-Brant", 243, 0.21, 0, (11*math.pi)/20, 0, 6371.1*10**3, 0.3, 1018, 10, 69.4*10**3, 0.17),
-    3: Body("b1", 3000, 3, 870, math.pi/2, 394399*10**3, 0, 0.1, 0, 0, 0, 0),
-    4: Body("b2", 3000, 3, 8040, 0, 0, -12000*10**3, 0.1, 0, 0, 0, 0),
+    3: Body("Tesla", 3000, 3, 870, math.pi/2, 394399*10**3, 0, 0.1, 0, 0, 0, 0),
+    4: Body("Moonsat", 3000, 3, 1.488*10**3, -math.pi, 0, 400399*10**3, 0.1, 0, 0, 0, 0),
 }
 
 
@@ -119,7 +119,8 @@ def Fthrust(earth, obj):
 
 
 t = 0
-dt = 100
+dtbase = 1
+dt = dtbase
 
 WIDTH = 1000
 HEIGHT = 1000
@@ -139,12 +140,33 @@ pygame.init()
 scr = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption('SIM')
 font = pygame.font.SysFont("Arial", 20)  
+pfont = pygame.font.SysFont("Arial", 14)
 running = True
+
+pygame.mixer.init()
+pygame.mixer.music.load("mii.wav")
+pygame.mixer.music.set_volume(1)
+
+pygame.mixer.music.play()
 
 while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_SPACE and dt != 0:
+                dtp = dt
+                dt = 0
+            elif event.key == pygame.K_SPACE and dt == 0:
+                dt = dtp
+
+            if event.key == pygame.K_UP:
+                dt *= 10
+            if event.key == pygame.K_DOWN:
+                dt /= 10
+            if event.key == pygame.K_KP_ENTER:
+                dt = dtbase
+    
     scr.fill((255, 255, 255))
 
     if t > (60*60*24)*365:
@@ -152,11 +174,12 @@ while running:
         y = t // (60*60*24*365)
         d = (t % (60*60*24*360))//(60*60*24)
 
-        text = font.render(f"t = {y}y,{d}d", True, (0, 0, 0))
+        t_text = font.render(f"t = {y}y,{d}d", True, (0, 0, 0))
     else:
         td = timedelta(seconds=int(t))
+        t_text = font.render(f"t = {td}", True, (0, 0, 0))
 
-        text = font.render(f"t = {td}", True, (0, 0, 0))
+    dt_text = font.render(f"Simstep: dt = {dt} sec", True, (0, 0, 0))
 
     pygame.draw.line(scr, (200, 200, 200), (0, HEIGHT/2), (WIDTH, HEIGHT/2), 1)
     pygame.draw.line(scr, (200, 200, 200), (WIDTH/2, 0), (WIDTH/2, HEIGHT), 1)
@@ -203,9 +226,13 @@ while running:
         if drawrad <= 2:
             drawrad = 2
 
-        pygame.draw.circle(scr, (200, 0, 0), ((body.x)*m_to_x + xzero, (-body.y)*m_to_y + yzero), drawrad)
+        ptext = pfont.render(f"{body.name}", True, (0, 0, 0))
 
-    scr.blit(text,(20, 20)) 
+        pygame.draw.circle(scr, (200, 0, 0), ((body.x)*m_to_x + xzero, (-body.y)*m_to_y + yzero), drawrad)
+        scr.blit(ptext,((body.x)*m_to_x + xzero + drawrad, (-body.y)*m_to_y + yzero + drawrad))
+
+    scr.blit(t_text, (20, 20))
+    scr.blit(dt_text, (20, 40)) 
     pygame.display.flip()
     t += dt
 
