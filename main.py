@@ -33,6 +33,23 @@ class Body:
         self.x += (self.vx*dt)
         self.y += (self.vy*dt)
 
+class Vehicle:
+    def __init__(self, name, launch_planet, mass, radius, velocity, launch_angle, launch_positition, Cd, m_fuel, burn_rate, thrust, nozzle_r):
+        self.name = name
+        self.m_fuel = m_fuel
+        self.mass = mass
+        self.radius = radius
+        self.direction = math.radians(launch_angle)
+        self.vx = velocity*math.cos(self.direction)
+        self.vy = velocity*math.sin(self.direction)
+        self.x = x
+        self.y = y
+        self.Cd = Cd
+        self.A = math.pi*radius**2
+        self.burn_rate = burn_rate
+        self.thrust = thrust
+        self.Ae = math.pi*nozzle_r**2
+
 
 bodies = {
     # 0: Body("Sun", 1.9885*10**30, 696_342*10**3, 0, 0, 0, 0),
@@ -47,9 +64,9 @@ bodies = {
 
     0: Body("Earth", 5.97217*10**24, 6371*10**3, 0, 0, 0, 0, 0.1, 0, 0, 0, 0),
     1: Body("Moon", 7.342*10**22, 1737.4*10**3, 1.022*10**3, -math.pi, 0, 384399*10**3, 0.1, 0, 0, 0, 0),
-    # 2: Body("Black-Brant", 243, 0.21, 0, (11*math.pi)/20, 0, 6371.1*10**3, 0.3, 1018, 10, 69.4*10**3, 0.17),
-    3: Body("Tesla", 3000, 3, 870, math.pi/2, 394399*10**3, 0, 0.1, 0, 0, 0, 0),
-    4: Body("Moonsat", 3000, 3, 1.488*10**3, -math.pi, 0, 400399*10**3, 0.1, 0, 0, 0, 0),
+    2: Body("Black-Brant", 243, 0.21, 0, math.radians(73), 0, 6371.1*10**3, 0.3, 1018, 32.42, 69.4*10**3, 0.17),
+    # 3: Body("Tesla", 3000, 3, 870, math.pi/2, 394399*10**3, 0, 0.1, 0, 0, 0, 0),
+    # 4: Body("Moonsat", 3000, 3, 1.488*10**3, -math.pi, 0, 400399*10**3, 0.1, 0, 0, 0, 0),
 }
 
 
@@ -119,21 +136,18 @@ def Fthrust(earth, obj):
 
 
 t = 0
-dtbase = 1
+dtbase = 0.001
 dt = dtbase
 
 WIDTH = 1000
 HEIGHT = 1000
 
-x_max = 450_000*10**3
-y_max = 450_000*10**3
-
 xzero = WIDTH/2
 
 yzero = HEIGHT/2
 
-m_to_x = xzero/x_max
-m_to_y = yzero/y_max
+x_max = 450_000*10**3
+y_max = 450_000*10**3
 
 
 pygame.init()
@@ -150,6 +164,10 @@ running = True
 # pygame.mixer.music.play()
 
 while running:
+
+    m_to_x = xzero/x_max
+    m_to_y = yzero/y_max
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
@@ -166,6 +184,14 @@ while running:
                 dt /= 10
             if event.key == pygame.K_KP_ENTER:
                 dt = dtbase
+
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 4:
+                x_max /= 1.2
+                y_max /= 1.2
+            elif event.button == 5:
+                x_max *= 1.2
+                y_max *= 1.2
     
     scr.fill((255, 255, 255))
 
