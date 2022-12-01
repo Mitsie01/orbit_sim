@@ -192,6 +192,7 @@ x_offset = 0
 y_offset = 0
 
 toggle_altitude = False
+moving = False
 
 
 pygame.init()
@@ -255,6 +256,16 @@ while running:
             elif event.button == 5:
                 x_max *= 1.2
                 y_max *= 1.2
+
+            moving = True
+
+        elif event.type == pygame.MOUSEBUTTONUP:
+                moving = False
+
+            # Make your image move continuously
+        elif event.type == pygame.MOUSEMOTION and moving:
+            x_offset += event.rel[0]
+            y_offset += event.rel[1]
     
     scr.fill((255, 255, 255))
 
@@ -270,8 +281,8 @@ while running:
 
     dt_text = font.render(f"Simstep: dt = {dt} sec", True, (0, 0, 0))
 
-    pygame.draw.line(scr, (200, 200, 200), (0, HEIGHT/2), (WIDTH, HEIGHT/2), 1)
-    pygame.draw.line(scr, (200, 200, 200), (WIDTH/2, 0), (WIDTH/2, HEIGHT), 1)
+    pygame.draw.line(scr, (200, 200, 200), (0, (HEIGHT/2) + y_offset), (WIDTH, (HEIGHT/2) + y_offset), 1)
+    pygame.draw.line(scr, (200, 200, 200), ((WIDTH/2) + x_offset, 0), ((WIDTH/2) + x_offset, HEIGHT), 1)
 
     # Calculate gravitational force applied on each body by all bodies
     for body in bodies.values():
